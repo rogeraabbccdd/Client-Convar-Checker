@@ -1,0 +1,37 @@
+//**********************************************  Valid Colors	********************************************************
+// {NORMAL}, {DARKRED}, {PINK}, {YELLOW}, {GREEN}, {LIGHTGREEN}, {RED}, {GRAY}, {BLUE}, {DARKBLUE}, {PURPLE}, {ORANGE} *
+//**********************************************************************************************************************
+//                                     http://i.imgur.com/q2wb8Cu.png                                                  *
+//{NORMAL} = x01 | {DARKRED} = x02 | {PINK} = x03 | {GREEN} = x04 | {YELLOW} = x09 | {LIGHTGREEN} = x06 | {RED} = x07  *
+//{GRAY} = x08 | {BLUE} = x0B | {DARKBLUE} = x0C | {PURPLE} = x0E|  {ORANGE} = x10                                     *
+//**********************************************************************************************************************
+"Phrases"
+{
+	"Warn Admin"
+	{
+		"#format"		"{1:s},{2:s},{3:s}"
+		"en"			"{RED}[WARNING] {NORMAL}Player {LIGHTGREEN}{1}{NORMAL}'s cvar {PINK}{2} {NORMAL}value {BLUE}{3} {NORMAL}is not allowed!"
+		"zho"			"{RED}[警告] {NORMAL}玩家 {LIGHTGREEN}{1}{NORMAL}的 {PINK}{2} {NORMAL}使用不被允許的數值 {BLUE}{3} {NORMAL}!"
+	}
+	
+	"Kick Reason"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"You have been kicked because you're {1} is using not allowed value {2}."
+		"zho"			"你已被踢出伺服器，因為你的 {1} 使用不被允許的數值 {2}."
+	}
+	
+	"Ban Reason"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"Using not allowed cvar value. Cvar {1}, value {2}."
+		"zho"			"使用不被允許的參數. 參數 {1}, 值 {2}."
+	}
+	
+	"Ban Kick Reason"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"You have been banned because you're {1} is using not allowed value {2}."
+		"zho"			"你已被伺服器封鎖，因為你的 {1} 使用不被允許的數值 {2}."
+	}
+}	
