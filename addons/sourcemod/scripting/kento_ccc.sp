@@ -23,14 +23,14 @@ public Plugin myinfo =
 {
 	name = "[CS:GO] Client Convar Checker",
 	author = "Kento from Akami Studio",
-	version = "1.0",
+	version = "1.1",
 	description = "Check Client Convar",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
 
 public void OnPluginStart()
 {
-	CreateConVar("sm_ccc_timer",  "1.0", "Check cvar timer, FLOAT ONLY", _, true, 0.0);
+	CreateConVar("sm_ccc_timer",  "10.0", "Check cvar timer, FLOAT ONLY", _, true, 0.0);
 	RegAdminCmd("sm_ccc_test", Command_Test, ADMFLAG_ROOT, "Test ccc plugin.");
 	RegAdminCmd("sm_ccc_reload", Command_Reload, ADMFLAG_ROOT, "Reload ccc settings.");
 	
@@ -62,13 +62,10 @@ void LoadConfig()
 	if(KvGotoFirstSubKey(kv))
 	{
 		char cvarname[256];
-		char spunishment[32];
 		int punishment;
 		char value[32];
 		char immunity[32];
-		char sbantime[32];
 		int bantime;
-		char smode[32];
 		int mode;
 		
 		do
@@ -78,14 +75,11 @@ void LoadConfig()
 			
 			KvGetSectionName(kv, cvarname, sizeof(cvarname));
 			KvGetString(kv, "immunity", immunity, sizeof(immunity));
-			KvGetString(kv, "mode", smode, sizeof(smode));
 			KvGetString(kv, "value", value, sizeof(value));
-			KvGetString(kv, "punishment", spunishment, sizeof(spunishment));
-			KvGetString(kv, "bantime", sbantime, sizeof(sbantime));
 			
-			mode = StringToInt(smode);
-			bantime = StringToInt(sbantime);
-			punishment = StringToInt(spunishment);
+			mode = KvGetNum(kv, "mode");
+			bantime = KvGetNum(kv, "bantime");
+			punishment = KvGetNum(kv, "punishment");
 			
 			strcopy(g_sCvarName[CvarCount], sizeof(g_sCvarName[]), cvarname);
 			strcopy(g_sCvarImmunity[CvarCount], sizeof(g_sCvarImmunity[]), immunity);
@@ -157,9 +151,12 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 					for (int l = 1; l <= MaxClients; l++) 
 					{
 						// warn admin
-						if(IsAdmin(l))
-							CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
+						if(IsAdmin(l))	CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
 					}
+					
+					char path[PLATFORM_MAX_PATH];
+					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
+					LogToFile(path, "%L %T", client, "Log Warn", LANG_SERVER, cvarName, cvarValue);
 				}
 					
 				else if(g_iCvarPunishment[cvar_id] == 1) // kick
@@ -168,6 +165,10 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 					Format(kickreason, sizeof(kickreason), "%T", "Kick Reason", client, cvarName, cvarValue);	
 					
 					KickClient(client, kickreason);
+					
+					char path[PLATFORM_MAX_PATH];
+					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
+					LogToFile(path, "%L %T", client, "Log Kick", LANG_SERVER, cvarName, cvarValue);
 				}
 				
 				else if(g_iCvarPunishment[cvar_id] == 2) // ban
@@ -179,6 +180,10 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 					Format(bankickreason, sizeof(bankickreason), "%T", "Ban Kick Reason", client, cvarName, cvarValue);	
 					
 					BanClient(client, g_iCvarBanTime[cvar_id], BANFLAG_AUTO, banreason, bankickreason, "sm_ban");
+					
+					char path[PLATFORM_MAX_PATH];
+					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
+					LogToFile(path, "%L %T", client, "Log Ban", LANG_SERVER, cvarName, cvarValue, g_iCvarBanTime[cvar_id]);
 				}
 			}
 		}
@@ -196,9 +201,12 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 					for (int l = 1; l <= MaxClients; l++) 
 					{
 						// warn admin
-						if(IsAdmin(l))
-							CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
+						if(IsAdmin(l))	CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
 					}
+					
+					char path[PLATFORM_MAX_PATH];
+					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
+					LogToFile(path, "%L %T", client, "Log Warn", LANG_SERVER, cvarName, cvarValue);
 				}
 					
 				else if(g_iCvarPunishment[cvar_id] == 1) // kick
@@ -207,6 +215,10 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 					Format(kickreason, sizeof(kickreason), "%T", "Kick Reason", client, cvarName, cvarValue);	
 					
 					KickClient(client, kickreason);
+					
+					char path[PLATFORM_MAX_PATH];
+					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
+					LogToFile(path, "%L %T", client, "Log Kick", LANG_SERVER, cvarName, cvarValue);
 				}
 				
 				else if(g_iCvarPunishment[cvar_id] == 2) // ban
@@ -218,6 +230,10 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 					Format(bankickreason, sizeof(bankickreason), "%T", "Ban Kick Reason", client, cvarName, cvarValue);	
 					
 					BanClient(client, g_iCvarBanTime[cvar_id], BANFLAG_AUTO, banreason, bankickreason, "sm_ban");
+					
+					char path[PLATFORM_MAX_PATH];
+					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
+					LogToFile(path, "%L %T", client, "Log Ban", LANG_SERVER, cvarName, cvarValue, g_iCvarBanTime[cvar_id]);
 				}
 			}
 		}
@@ -271,9 +287,7 @@ stock bool HasImmunity(int client, int cvarid)
 	// Check if player is having any access (including skins overrides)
 	else
 	{
-		if (CheckCommandAccess(client, "ccc_immunity", ReadFlagString(g_sCvarImmunity[CvarCount]), true))
-		return true;
-	
+		if (CheckCommandAccess(client, "ccc_immunity", ReadFlagString(g_sCvarImmunity[CvarCount]), true))	return true;
 		else return false;
 	}
 }

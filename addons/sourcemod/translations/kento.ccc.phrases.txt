@@ -34,4 +34,25 @@
 		"en"			"You have been banned because you're {1} is using not allowed value {2}."
 		"zho"			"你已被伺服器封鎖，因為你的 {1} 使用不被允許的數值 {2}."
 	}
+	
+	"Log Warn"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"cvar {1} value {2}."
+		"zho"			"參數 {1} 值 {2}."
+	}
+	
+	"Log Kick"
+	{
+		"#format"		"{1:s},{2:s}"
+		"en"			"cvar {1} value {2}. Kicked."
+		"zho"			"參數 {1} 值 {2}. 踢出玩家."
+	}
+	
+	"Log Ban"
+	{
+		"#format"		"{1:s},{2:s},{3:d}"
+		"en"			"cvar {1} value {2}. Banned {3} Minutes."
+		"zho"			"參數 {1} 值 {2}. 封鎖 {3} 分鐘."
+	}
 }	
