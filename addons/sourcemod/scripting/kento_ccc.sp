@@ -18,12 +18,13 @@ char g_sCvarImmunity[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
 char g_sCvarValue[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
 int g_iCvarBanTime[MAX_CVAR_COUNT];
 int g_iCvarMode[MAX_CVAR_COUNT];
+int warn[MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
 	name = "[CS:GO] Client Convar Checker",
 	author = "Kento from Akami Studio",
-	version = "1.1",
+	version = "1.2",
 	description = "Check Client Convar",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -31,6 +32,8 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
 	CreateConVar("sm_ccc_timer",  "10.0", "Check cvar timer, FLOAT ONLY", _, true, 0.0);
+	CreateConVar("sm_ccc_warn",  "3", "Warn player x times before punishment?", _, true, 0.0);
+	
 	RegAdminCmd("sm_ccc_test", Command_Test, ADMFLAG_ROOT, "Test ccc plugin.");
 	RegAdminCmd("sm_ccc_reload", Command_Reload, ADMFLAG_ROOT, "Reload ccc settings.");
 	
@@ -61,12 +64,8 @@ void LoadConfig()
 	// Read Config
 	if(KvGotoFirstSubKey(kv))
 	{
-		char cvarname[256];
-		int punishment;
-		char value[32];
-		char immunity[32];
-		int bantime;
-		int mode;
+		char cvarname[256], value[32], immunity[32];
+		int punishment, bantime, mode;
 		
 		do
 		{
@@ -93,6 +92,12 @@ void LoadConfig()
 	
 	KvRewind(kv);
 	CloseHandle(kv);
+	
+	// reset warn
+	for (int i = 1; i <= MaxClients; i++) 
+	{
+		warn[i] = 0;
+	}
 }
 
 public Action Timer_CheckCvar(Handle timer)
@@ -138,86 +143,55 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 		if(HasImmunity(client, cvar_id))
 			return;
 		
-		// not allow value
-		if(g_iCvarMode[cvar_id] == 0)
-		{
-			// client cvar = not allow value
-			if(StrEqual(cvarValue, g_sCvarValue[cvar_id]))
-			{
-				// Punishment
-				if(g_iCvarPunishment[cvar_id] == 0) //Warn admin
-				{
-					// Loop all client
-					for (int l = 1; l <= MaxClients; l++) 
-					{
-						// warn admin
-						if(IsAdmin(l))	CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
-					}
-					
-					char path[PLATFORM_MAX_PATH];
-					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
-					LogToFile(path, "%L %T", client, "Log Warn", LANG_SERVER, cvarName, cvarValue);
-				}
-					
-				else if(g_iCvarPunishment[cvar_id] == 1) // kick
-				{
-					char kickreason[512];
-					Format(kickreason, sizeof(kickreason), "%T", "Kick Reason", client, cvarName, cvarValue);	
-					
-					KickClient(client, kickreason);
-					
-					char path[PLATFORM_MAX_PATH];
-					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
-					LogToFile(path, "%L %T", client, "Log Kick", LANG_SERVER, cvarName, cvarValue);
-				}
-				
-				else if(g_iCvarPunishment[cvar_id] == 2) // ban
-				{
-					char banreason[512];
-					Format(banreason, sizeof(banreason), "%T", "Ban Reason", client, cvarName, cvarValue);
-					
-					char bankickreason[512];
-					Format(bankickreason, sizeof(bankickreason), "%T", "Ban Kick Reason", client, cvarName, cvarValue);	
-					
-					BanClient(client, g_iCvarBanTime[cvar_id], BANFLAG_AUTO, banreason, bankickreason, "sm_ban");
-					
-					char path[PLATFORM_MAX_PATH];
-					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
-					LogToFile(path, "%L %T", client, "Log Ban", LANG_SERVER, cvarName, cvarValue, g_iCvarBanTime[cvar_id]);
-				}
-			}
-		}
+		/* warn client should work like dis
+		cvar	warnclient	diff	warnchat
+		3 		1			2		2		<- warn 1
+		3		2			1		1		<- warn 2
+		3		3			0		0		<- warn 3
+		3		4			-1		-1		<- kick
+		*/
 		
-		// only allow value
-		else if(g_iCvarMode[cvar_id] == 1)
+		if((g_iCvarMode[cvar_id] == 0 && StrEqual(cvarValue, g_sCvarValue[cvar_id])) 
+		|| (g_iCvarMode[cvar_id] == 1 && !StrEqual(cvarValue, g_sCvarValue[cvar_id])))
 		{
-			// client cvar != value
-			if(!StrEqual(cvarValue, g_sCvarValue[cvar_id]))
+			char path[PLATFORM_MAX_PATH];
+			BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
+			
+			warn[client]++;
+				
+			int cvar_warn = GetConVarInt(FindConVar("sm_ccc_warn"));
+			int diffwarn = cvar_warn - warn[client];
+					
+			// show warn message to client
+			if(diffwarn > 0)
 			{
-				// Punishment
-				if(g_iCvarPunishment[cvar_id] == 0) //Warn admin
+				CPrintToChat(client, "%T", "Warn Client", client, cvarName, cvarValue, diffwarn);
+			}
+			else if(diffwarn == 0)
+			{
+				CPrintToChat(client, "%T", "Warn Client 2", client, cvarName, cvarValue, GetConVarFloat(FindConVar("sm_ccc_timer")));
+			}
+				
+			// warn admin
+			for (int l = 1; l <= MaxClients; l++) 
+			{
+				if(IsAdmin(l))	CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
+			}
+						
+			// log
+			LogToFile(path, "%L %T", client, "Log Warn", LANG_SERVER, cvarName, cvarValue);
+				
+			// Punishment
+			if(cvar_warn == warn[client] -1)
+			{
+				if(g_iCvarPunishment[cvar_id] == 1) // kick
 				{
-					// Loop all client
-					for (int l = 1; l <= MaxClients; l++) 
-					{
-						// warn admin
-						if(IsAdmin(l))	CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
-					}
-					
-					char path[PLATFORM_MAX_PATH];
-					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
-					LogToFile(path, "%L %T", client, "Log Warn", LANG_SERVER, cvarName, cvarValue);
-				}
-					
-				else if(g_iCvarPunishment[cvar_id] == 1) // kick
-				{
+					// no warn set, kick
 					char kickreason[512];
 					Format(kickreason, sizeof(kickreason), "%T", "Kick Reason", client, cvarName, cvarValue);	
 					
 					KickClient(client, kickreason);
 					
-					char path[PLATFORM_MAX_PATH];
-					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
 					LogToFile(path, "%L %T", client, "Log Kick", LANG_SERVER, cvarName, cvarValue);
 				}
 				
@@ -231,8 +205,6 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 					
 					BanClient(client, g_iCvarBanTime[cvar_id], BANFLAG_AUTO, banreason, bankickreason, "sm_ban");
 					
-					char path[PLATFORM_MAX_PATH];
-					BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
 					LogToFile(path, "%L %T", client, "Log Ban", LANG_SERVER, cvarName, cvarValue, g_iCvarBanTime[cvar_id]);
 				}
 			}
@@ -248,6 +220,16 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 	else if (result == ConVarQuery_Protected)
 		LogError("Client convar %s was found, but it is protected. The server cannot retrieve its value.", cvarName);
 	
+}
+
+public void OnClientPutInServer(int client)
+{
+	warn[client] = 0;
+}
+
+public void OnClientDisconnect(int client)
+{
+	warn[client] = 0;
 }
 
 public Action Command_Test (int client, int args)

@@ -14,6 +14,20 @@
 		"zho"			"{RED}[警告] {NORMAL}玩家 {LIGHTGREEN}{1}{NORMAL}的 {PINK}{2} {NORMAL}使用不被允許的數值 {BLUE}{3} {NORMAL}!"
 	}
 	
+	"Warn Client"
+	{
+		"#format"		"{1:s},{2:s},{3:d}"
+		"en"			"{RED}[WARNING] {NORMAL}Your cvar {PINK}{1} {NORMAL}value {BLUE}{2} {NORMAL}is not allowed, you'll be punished after {LIGHTGREEN}{3} {NORMAL}more warning."
+		"zho"			"{RED}[警告] {NORMAL}你的參數 {PINK}{1} {NORMAL}使用不被允許的數值 {BLUE}{2} {NORMAL}.  再警告 {LIGHTGREEN}{3} {NORMAL}次後你將被處罰."
+	}
+	
+	"Warn Client 2"
+	{
+		"#format"		"{1:s},{2:s},{3:.f}"
+		"en"			"{RED}[WARNING] {NORMAL}Your cvar {PINK}{1} {NORMAL}value {BLUE}{2} {NORMAL}is not allowed, you'll be punished after {LIGHTGREEN}{3} {NORMAL}seconds."
+		"zho"			"{RED}[WARNING] {NORMAL}你的參數 {PINK}{1} {NORMAL}使用不被允許的數值 {BLUE}{2} {NORMAL}.  {LIGHTGREEN}{3} {NORMAL}秒後你將被處罰."
+	}
+	
 	"Kick Reason"
 	{
 		"#format"		"{1:s},{2:s}"
