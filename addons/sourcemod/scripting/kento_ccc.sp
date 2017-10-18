@@ -24,7 +24,7 @@ public Plugin myinfo =
 {
 	name = "[CS:GO] Client Convar Checker",
 	author = "Kento from Akami Studio",
-	version = "1.2",
+	version = "1.2.1",
 	description = "Check Client Convar",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -96,7 +96,10 @@ void LoadConfig()
 	// reset warn
 	for (int i = 1; i <= MaxClients; i++) 
 	{
-		warn[i] = 0;
+		if (IsValidClient(i) && !IsFakeClient(i))
+		{
+			warn[i] = 0;
+		}
 	}
 }
 
@@ -105,11 +108,11 @@ public Action Timer_CheckCvar(Handle timer)
 	// Loop all client
 	for (int i = 1; i <= MaxClients; i++) 
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
+		if (IsValidClient(i) && !IsFakeClient(i))
 		{
 			QueryClientConVar2(i);
 		}
-    }
+	}
 }
 
 void QueryClientConVar2(int client)
@@ -175,7 +178,7 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 			// warn admin
 			for (int l = 1; l <= MaxClients; l++) 
 			{
-				if(IsAdmin(l))	CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
+				if (IsValidClient(l) && !IsFakeClient(l) && IsAdmin(l))	CPrintToChat(l, "%T", "Warn Admin", l, clientname, cvarName, cvarValue);
 			}
 						
 			// log
@@ -224,34 +227,46 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 
 public void OnClientPutInServer(int client)
 {
-	warn[client] = 0;
+	if (IsValidClient(client) && !IsFakeClient(client))
+	{
+		warn[client] = 0;
+	}
 }
 
 public void OnClientDisconnect(int client)
 {
-	warn[client] = 0;
+	if (IsValidClient(client) && !IsFakeClient(client))
+	{
+		warn[client] = 0;
+	}
 }
 
 public Action Command_Test (int client, int args)
 {
-	for(int i = 1; i <= CvarCount; i++) 
+	if (IsValidClient(client) && !IsFakeClient(client))
 	{
-		PrintToConsole(client, "Cvar name %s, id %d, Punishment %d, Immunity %s, Value %s, Bantime %d, Mode %d",
-			g_sCvarName[i],
-			i,
-			g_iCvarPunishment[i],
-			g_sCvarImmunity[i],
-			g_sCvarValue[i],
-			g_iCvarBanTime[i],
-			g_iCvarMode[i]);
+		for(int i = 1; i <= CvarCount; i++) 
+		{
+			PrintToConsole(client, "Cvar name %s, id %d, Punishment %d, Immunity %s, Value %s, Bantime %d, Mode %d",
+				g_sCvarName[i],
+				i,
+				g_iCvarPunishment[i],
+				g_sCvarImmunity[i],
+				g_sCvarValue[i],
+				g_iCvarBanTime[i],
+				g_iCvarMode[i]);
+		}
 	}
 	return Plugin_Handled;
 }
 
 public Action Command_Reload (int client, int args)
 {
-	LoadConfig();
-	PrintToChat(client, "client convar checker settings reloaded.");
+	if (IsValidClient(client) && !IsFakeClient(client))
+	{
+		LoadConfig();
+		PrintToChat(client, "client convar checker settings reloaded.");
+	}
 	return Plugin_Handled;
 }
 
@@ -263,10 +278,7 @@ stock bool IsAdmin(int client)
 
 stock bool HasImmunity(int client, int cvarid)
 {
-	if(StrEqual(g_sCvarImmunity[CvarCount], ""))
-		return false;
-	
-	// Check if player is having any access (including skins overrides)
+	if(StrEqual(g_sCvarImmunity[CvarCount], ""))	return false;
 	else
 	{
 		if (CheckCommandAccess(client, "ccc_immunity", ReadFlagString(g_sCvarImmunity[CvarCount]), true))	return true;
