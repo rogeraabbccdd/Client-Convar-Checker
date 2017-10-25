@@ -7,32 +7,40 @@
 #define MAX_CVAR_COUNT 1000
 
 int CvarCount;
-
-char Configfile[PLATFORM_MAX_PATH];
-
-Handle kv;
-
-char g_sCvarName[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
+int i_warn;
 int g_iCvarPunishment[MAX_CVAR_COUNT];
-char g_sCvarImmunity[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
-char g_sCvarValue[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
 int g_iCvarBanTime[MAX_CVAR_COUNT];
 int g_iCvarMode[MAX_CVAR_COUNT];
-int warn[MAXPLAYERS + 1];
+int i_playerwarn[MAXPLAYERS + 1];
+
+float f_checktimer;
+
+Handle h_CheckTimer;
+Handle kv;
+
+char Configfile[PLATFORM_MAX_PATH];
+char g_sCvarName[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
+char g_sCvarImmunity[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
+char g_sCvarValue[MAX_CVAR_COUNT][PLATFORM_MAX_PATH + 1];
+
+ConVar Cvar_Timer, Cvar_Warn;
 
 public Plugin myinfo =
 {
 	name = "[CS:GO] Client Convar Checker",
-	author = "Kento from Akami Studio",
-	version = "1.2.1",
+	author = "Kento",
+	version = "1.2.2",
 	description = "Check Client Convar",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
 
 public void OnPluginStart()
 {
-	CreateConVar("sm_ccc_timer",  "10.0", "Check cvar timer, FLOAT ONLY", _, true, 0.0);
-	CreateConVar("sm_ccc_warn",  "3", "Warn player x times before punishment?", _, true, 0.0);
+	Cvar_Timer = CreateConVar("sm_ccc_timer",  "10.0", "Check cvar timer, FLOAT ONLY", _, true, 0.0);
+	Cvar_Warn = CreateConVar("sm_ccc_warn",  "3", "Warn player x times before punishment?", _, true, 0.0);
+	
+	Cvar_Timer.AddChangeHook(OnCvarChange);
+	Cvar_Warn.AddChangeHook(OnCvarChange);
 	
 	RegAdminCmd("sm_ccc_test", Command_Test, ADMFLAG_ROOT, "Test ccc plugin.");
 	RegAdminCmd("sm_ccc_reload", Command_Reload, ADMFLAG_ROOT, "Reload ccc settings.");
@@ -44,12 +52,14 @@ public void OnPluginStart()
 
 public void OnConfigsExecuted()
 {
+	f_checktimer = Cvar_Timer.FloatValue;
+	i_warn = Cvar_Warn.IntValue;
 	LoadConfig();
 }
 
 public void OnMapStart()
 {
-	CreateTimer(GetConVarFloat(FindConVar("sm_ccc_timer")), Timer_CheckCvar, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	h_CheckTimer = CreateTimer(f_checktimer, Timer_CheckCvar, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
 void LoadConfig()
@@ -98,7 +108,7 @@ void LoadConfig()
 	{
 		if (IsValidClient(i) && !IsFakeClient(i))
 		{
-			warn[i] = 0;
+			i_playerwarn[i] = 0;
 		}
 	}
 }
@@ -160,10 +170,9 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 			char path[PLATFORM_MAX_PATH];
 			BuildPath(Path_SM, path, sizeof(path), "logs/kento_ccc.log");
 			
-			warn[client]++;
+			i_playerwarn[client]++;
 				
-			int cvar_warn = GetConVarInt(FindConVar("sm_ccc_warn"));
-			int diffwarn = cvar_warn - warn[client];
+			int diffwarn = i_warn - i_playerwarn[client];
 					
 			// show warn message to client
 			if(diffwarn > 0)
@@ -185,7 +194,7 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 			LogToFile(path, "%L %T", client, "Log Warn", LANG_SERVER, cvarName, cvarValue);
 				
 			// Punishment
-			if(cvar_warn == warn[client] -1)
+			if(i_warn == i_playerwarn[client] -1)
 			{
 				if(g_iCvarPunishment[cvar_id] == 1) // kick
 				{
@@ -222,14 +231,13 @@ public void CheckCvar(QueryCookie cookie, int client, ConVarQueryResult result, 
 	
 	else if (result == ConVarQuery_Protected)
 		LogError("Client convar %s was found, but it is protected. The server cannot retrieve its value.", cvarName);
-	
 }
 
 public void OnClientPutInServer(int client)
 {
 	if (IsValidClient(client) && !IsFakeClient(client))
 	{
-		warn[client] = 0;
+		i_playerwarn[client] = 0;
 	}
 }
 
@@ -237,7 +245,7 @@ public void OnClientDisconnect(int client)
 {
 	if (IsValidClient(client) && !IsFakeClient(client))
 	{
-		warn[client] = 0;
+		i_playerwarn[client] = 0;
 	}
 }
 
@@ -268,6 +276,36 @@ public Action Command_Reload (int client, int args)
 		PrintToChat(client, "client convar checker settings reloaded.");
 	}
 	return Plugin_Handled;
+}
+
+public void OnCvarChange(ConVar convar, char[] oldValue, char[] newValue)
+{
+	if (convar == Cvar_Timer)
+	{
+		f_checktimer = Cvar_Timer.FloatValue;
+		
+		// Reset Timer
+		if (h_CheckTimer != INVALID_HANDLE)
+		{
+			KillTimer(h_CheckTimer);
+		}
+		h_CheckTimer = INVALID_HANDLE;
+		
+		h_CheckTimer = CreateTimer(f_checktimer, Timer_CheckCvar, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	}
+	else if (convar == Cvar_Warn)
+	{
+		i_warn = Cvar_Warn.IntValue;
+		
+		// Reset Warn
+		for (int i = 1; i <= MaxClients; i++) 
+		{
+			if (IsValidClient(i) && !IsFakeClient(i))
+			{
+				i_playerwarn[i] = 0;
+			}
+		}
+	}
 }
 
 stock bool IsAdmin(int client)
